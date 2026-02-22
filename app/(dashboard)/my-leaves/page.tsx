@@ -22,9 +22,11 @@ function StatusBadge({ status }: { status: string }) {
     case 'rejected': return <Badge variant="destructive">ไม่อนุมัติ</Badge>
     case 'cancelled': return <Badge variant="secondary">ยกเลิก</Badge>
     case 'pending_cancellation': return <Badge className="bg-orange-500 hover:bg-orange-600 text-white">รออนุมัติยกเลิก</Badge>
-    case 'pending':
+    case 'pending_manager': return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">รอหัวหน้าตรวจสอบ</Badge>
+    case 'pending_hr': return <Badge className="bg-blue-500 hover:bg-blue-600 text-white">รอ HR อนุมัติ</Badge>
+    case 'pending': return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">รอตรวจสอบ</Badge> // กันเหนียวสำหรับข้อมูลเก่า
     default:
-      return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">รอตรวจสอบ</Badge>
+      return <Badge variant="outline">{status}</Badge>
   }
 }
 
@@ -52,7 +54,7 @@ export default async function MyLeavesPage(props: {
           <p className="text-muted-foreground">ประวัติการลาและยื่นขอลาหยุด</p>
         </div>
         
-        <LeaveRequestDialog leaveTypes={leaveTypes} />
+        <LeaveRequestDialog leaveTypes={leaveTypes} quotas={quotas} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
@@ -106,7 +108,7 @@ export default async function MyLeavesPage(props: {
             <TableCell>{formatDate(leave.start_date)}</TableCell>
             <TableCell>{formatDate(leave.end_date)}</TableCell>
             <TableCell>{leave.total_days} วัน</TableCell>
-            <TableCell className="max-w-[200px] truncate" title={leave.reason || ""}>
+            <TableCell className="max-w-50 truncate" title={leave.reason || ""}>
               {leave.reason || "-"}
             </TableCell>
             <TableCell>
