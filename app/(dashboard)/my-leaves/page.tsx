@@ -22,9 +22,11 @@ function StatusBadge({ status }: { status: string }) {
     case 'rejected': return <Badge variant="destructive">ไม่อนุมัติ</Badge>
     case 'cancelled': return <Badge variant="secondary">ยกเลิก</Badge>
     case 'pending_cancellation': return <Badge className="bg-orange-500 hover:bg-orange-600 text-white">รออนุมัติยกเลิก</Badge>
-    case 'pending':
+    case 'pending_manager': return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">รอหัวหน้าตรวจสอบ</Badge>
+    case 'pending_hr': return <Badge className="bg-blue-500 hover:bg-blue-600 text-white">รอ HR อนุมัติ</Badge>
+    case 'pending': return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">รอตรวจสอบ</Badge> // กันเหนียวสำหรับข้อมูลเก่า
     default:
-      return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">รอตรวจสอบ</Badge>
+      return <Badge variant="outline">{status}</Badge>
   }
 }
 
