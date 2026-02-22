@@ -77,6 +77,8 @@ export async function submitLeaveRequest(payload: {
       message: `${employee.first_name} ${employee.last_name} ได้ยื่นคำขออนุมัติการลา โปรดตรวจสอบ`,
       link: '/leave-approvals'
     }])
+  } else if (initialStatus === 'pending_hr') {
+    await notifyAllHR(supabase, 'คำขออนุมัติการลาใหม่ (ส่งตรงถึง HR)', `${employee.first_name} ${employee.last_name} ได้ยื่นคำขออนุมัติการลา โปรดตรวจสอบ`);
   }
   
   revalidatePath('/my-leaves')
@@ -138,6 +140,7 @@ export async function getPendingApprovals(page: number = 1, limit: number = 10) 
       employee:employees!leave_requests_employee_id_fkey!inner(id, first_name, last_name, department_id),
       leave_type:leave_types!leave_requests_leave_type_id_fkey(id, name, is_paid)
     `, { count: 'exact' })
+    .in('status', ['pending', 'pending_manager', 'pending_hr', 'pending_cancellation', 'pending_cancellation_hr'])
     .order('created_at', { ascending: true })
 
   let { data, error } = await query
@@ -146,10 +149,10 @@ export async function getPendingApprovals(page: number = 1, limit: number = 10) 
   let filteredData = (data || []) as any[];
 
   if (isCEO) {
-    filteredData = filteredData.filter(r => ['pending', 'pending_manager', 'pending_hr', 'pending_cancellation'].includes(r.status))
+     filteredData = filteredData.filter(r => ['pending', 'pending_manager', 'pending_hr', 'pending_cancellation', 'pending_cancellation_hr'].includes(r.status))
   } else {
     filteredData = filteredData.filter(r => {
-      if (isHR && ['pending_hr', 'pending_cancellation'].includes(r.status)) return true;
+      if (isHR && ['pending_hr', 'pending_cancellation_hr'].includes(r.status)) return true;
       if (deptIds.includes(r.employee.department_id) && ['pending', 'pending_manager', 'pending_cancellation'].includes(r.status)) return true;
       return false;
     })
@@ -174,7 +177,7 @@ export async function updateLeaveStatusAction(requestId: number, action: 'approv
 
   const { data: request } = await supabase
     .from('leave_requests')
-    .select('status, employee_id, leave_type:leave_types(name)')
+    .select('status, employee_id, leave_type:leave_types(name), employee:employees(first_name, last_name)')
     .eq('id', requestId)
     .single()
 
@@ -191,6 +194,12 @@ export async function updateLeaveStatusAction(requestId: number, action: 'approv
   } else if (request.status === 'pending_hr') {
     newStatus = action === 'approve' ? 'approved' : 'rejected'
   } else if (request.status === 'pending_cancellation') {
+    if (action === 'approve') {
+      newStatus = isCEO ? 'cancelled' : 'pending_cancellation_hr'
+    } else {
+      newStatus = 'approved'
+    }
+  } else if (request.status === 'pending_cancellation_hr') {
     newStatus = action === 'approve' ? 'cancelled' : 'approved' 
   } else {
     return { error: "สถานะใบลาไม่ถูกต้อง" }
@@ -216,6 +225,9 @@ export async function updateLeaveStatusAction(requestId: number, action: 'approv
     : (reqData.leave_type?.name || 'การลา');
 
   if (newStatus === 'pending_hr') {
+    const empData = Array.isArray(reqData.employee) ? reqData.employee[0] : reqData.employee;
+    const empName = empData ? `${empData.first_name} ${empData.last_name}` : 'พนักงาน';
+    await notifyAllHR(supabase, 'รอ HR อนุมัติการลาขั้นสุดท้าย', `${empName} ได้รับการอนุมัติจากหัวหน้าแผนกแล้ว รอ HR อนุมัติ ${leaveName}`);
   } else {
     if (newStatus === 'approved') {
       title = 'อนุมัติการลาขั้นสุดท้ายแล้ว';
@@ -226,6 +238,11 @@ export async function updateLeaveStatusAction(requestId: number, action: 'approv
     } else if (newStatus === 'cancelled') {
       title = 'อนุมัติการยกเลิกการลา';
       message = `คำขอยกเลิก${leaveName} ของคุณได้รับการอนุมัติแล้ว`;
+    }
+    else if (newStatus === 'pending_cancellation_hr') {
+      const empData = Array.isArray(reqData.employee) ? reqData.employee[0] : reqData.employee;
+      const empName = empData ? `${empData.first_name} ${empData.last_name}` : 'พนักงาน';
+      await notifyAllHR(supabase, 'รอ HR อนุมัติยกเลิกการลา', `${empName} ได้รับการอนุมัติยกเลิกจากหัวหน้าแผนกแล้ว รอ HR ตรวจสอบ ${leaveName}`);
     }
 
     if (title) {
@@ -270,7 +287,7 @@ export async function getMyLeaveQuotas() {
     .eq('employee_id', employee.id)
     .gte('start_date', `${currentYear}-01-01`)
     .lte('end_date', `${currentYear}-12-31`)
-    .in('status', ['approved', 'pending', 'pending_manager', 'pending_hr'])
+    .in('status', ['approved', 'pending', 'pending_manager', 'pending_hr', 'pending_cancellation', 'pending_cancellation_hr'])
 
   const quotas = leaveTypes?.map(type => {
     let totalQuota = type.default_quota;
@@ -280,7 +297,7 @@ export async function getMyLeaveQuotas() {
 
     const typeRequests = requests?.filter(r => r.leave_type_id === type.id) || [];
     
-    const approvedDays = typeRequests.filter(r => r.status === 'approved').reduce((sum, r) => sum + Number(r.total_days), 0);
+    const approvedDays = typeRequests.filter(r => ['approved', 'pending_cancellation', 'pending_cancellation_hr'].includes(r.status)).reduce((sum, r) => sum + Number(r.total_days), 0);
     const pendingDays = typeRequests.filter(r => ['pending', 'pending_manager', 'pending_hr'].includes(r.status)).reduce((sum, r) => sum + Number(r.total_days), 0);
     
     const usedDays = approvedDays + pendingDays;
@@ -306,8 +323,33 @@ export async function cancelLeaveRequestAction(requestId: number, currentStatus:
   if (!employee) return { error: "Unauthorized" }
 
   let newStatus = 'cancelled'
+  let approverId = null;
+
   if (currentStatus === 'approved') {
-    newStatus = 'pending_cancellation'
+    if (employee.department_id) {
+      const { data: currentDept } = await supabase
+        .from('departments')
+        .select('manager_id, parent_department_id')
+        .eq('id', employee.department_id)
+        .single()
+
+      if (currentDept) {
+        if (currentDept.manager_id && currentDept.manager_id !== employee.id) {
+          approverId = currentDept.manager_id;
+        } else if (currentDept.parent_department_id) {
+          const { data: parentDept } = await supabase
+            .from('departments')
+            .select('manager_id')
+            .eq('id', currentDept.parent_department_id)
+            .single()
+
+          if (parentDept && parentDept.manager_id) {
+            approverId = parentDept.manager_id;
+          }
+        }
+      }
+    }
+    newStatus = approverId ? 'pending_cancellation' : 'pending_cancellation_hr'
   }
 
   const { error } = await supabase
@@ -321,6 +363,17 @@ export async function cancelLeaveRequestAction(requestId: number, currentStatus:
 
   if (error) return { error: error.message }
   
+  if (newStatus === 'pending_cancellation' && approverId) {
+    await supabase.from('notifications').insert([{
+      employee_id: approverId,
+      title: 'คำขอยกเลิกการลา',
+      message: `${employee.first_name} ${employee.last_name} ขอยกเลิกการลาที่อนุมัติไปแล้ว โปรดตรวจสอบ`,
+      link: '/leave-approvals'
+    }])
+  } else if (newStatus === 'pending_cancellation_hr') {
+    await notifyAllHR(supabase, 'ขอยกเลิกการลา', `${employee.first_name} ${employee.last_name} ขอยกเลิกการลาที่อนุมัติไปแล้ว โปรดตรวจสอบ`);
+  }
+
   revalidatePath('/my-leaves')
   revalidatePath('/leave-approvals')
   return { success: true }
@@ -353,4 +406,31 @@ export async function getApprovalHistory(page: number = 1, limit: number = 10) {
     totalPages: count ? Math.ceil(count / limit) : 1, 
     currentPage: page 
   }
+}
+
+async function notifyAllHR(supabase: any, title: string, message: string) {
+  const { data: rolePerms } = await supabase
+    .from('role_permissions')
+    .select('role_id, permissions!inner(action)')
+    .eq('permissions.action', 'approve:hr_final');
+    
+  if (!rolePerms || rolePerms.length === 0) return;
+  const hrRoleIds = rolePerms.map((rp: any) => rp.role_id);
+  
+  const { data: hrEmployees } = await supabase
+    .from('employees')
+    .select('id')
+    .in('role_id', hrRoleIds)
+    .eq('is_active', true);
+    
+  if (!hrEmployees || hrEmployees.length === 0) return;
+  
+  const notifications = hrEmployees.map((hr: any) => ({
+    employee_id: hr.id,
+    title,
+    message,
+    link: '/leave-approvals'
+  }));
+  
+  await supabase.from('notifications').insert(notifications);
 }

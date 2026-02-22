@@ -5,13 +5,17 @@ import { DataTable } from "@/components/shared/data-table"
 import { TableRow, TableCell } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { format } from "date-fns"
+import { th } from "date-fns/locale"
 
-function formatDate(dateString: string) {
+function formatShortDate(dateString: string) {
   if (!dateString) return "-"
-  const date = new Date(dateString)
-  return new Intl.DateTimeFormat('th-TH', { 
-    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-  }).format(date)
+  return format(new Date(dateString), "d MMM yyyy", { locale: th })
+}
+
+function formatDateTime(dateString: string) {
+  if (!dateString) return "-"
+  return format(new Date(dateString), "d MMM yyyy HH:mm", { locale: th })
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -19,10 +23,11 @@ function StatusBadge({ status }: { status: string }) {
     case 'approved': return <Badge className="bg-green-500 hover:bg-green-600">อนุมัติแล้ว</Badge>
     case 'rejected': return <Badge variant="destructive">ไม่อนุมัติ</Badge>
     case 'cancelled': return <Badge variant="secondary">ยกเลิก</Badge>
-    case 'pending_cancellation': return <Badge className="bg-orange-500 hover:bg-orange-600 text-white">รออนุมัติยกเลิก</Badge>
+    case 'pending_cancellation': return <Badge className="bg-orange-500 hover:bg-orange-600 text-white">รอหัวหน้าอนุมัติยกเลิก</Badge>
+    case 'pending_cancellation_hr': return <Badge className="bg-purple-500 hover:bg-purple-600 text-white">รอ HR อนุมัติยกเลิก</Badge>
     case 'pending_manager': return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">รอหัวหน้าตรวจสอบ</Badge>
     case 'pending_hr': return <Badge className="bg-blue-500 hover:bg-blue-600 text-white">รอ HR อนุมัติ</Badge>
-    case 'pending': return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">รอตรวจสอบ</Badge> // กันเหนียวสำหรับข้อมูลเก่า
+    case 'pending': return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">รอตรวจสอบ</Badge>
     default:
       return <Badge variant="outline">{status}</Badge>
   }
@@ -82,10 +87,10 @@ export default async function LeaveApprovalsPage(props: {
                     <span className="block text-[11px] font-bold text-orange-500 mt-1">ขอยกเลิกการลา</span>
                   )}
                 </TableCell>
-                <TableCell>{formatDate(leave.start_date).split(' ')[0]}</TableCell>
-                <TableCell>{formatDate(leave.end_date).split(' ')[0]}</TableCell>
+                <TableCell>{formatShortDate(leave.start_date)}</TableCell>
+                <TableCell>{formatShortDate(leave.end_date)}</TableCell>
                 <TableCell>{leave.total_days} วัน</TableCell>
-                <TableCell className="max-w-[200px] truncate" title={leave.reason || ""}>
+                <TableCell className="max-w-50 truncate" title={leave.reason || ""}>
                   {leave.reason || "-"}
                 </TableCell>
                 <TableCell className="text-right">
@@ -113,14 +118,14 @@ export default async function LeaveApprovalsPage(props: {
                 <TableCell>
                   {leave.leave_type?.name}
                 </TableCell>
-                <TableCell>{formatDate(leave.start_date).split(' ')[0]}</TableCell>
-                <TableCell>{formatDate(leave.end_date).split(' ')[0]}</TableCell>
+                <TableCell>{formatShortDate(leave.start_date)}</TableCell>
+                <TableCell>{formatShortDate(leave.end_date)}</TableCell>
                 <TableCell>{leave.total_days} วัน</TableCell>
                 <TableCell>
                   <StatusBadge status={leave.status} />
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs">
-                  {formatDate(leave.updated_at || leave.created_at || "")}
+                  {formatDateTime(leave.updated_at || leave.created_at || "")}
                 </TableCell>
               </TableRow>
             ))}

@@ -132,7 +132,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent className="px-2">
         {isLoading ? (
           <SidebarGroup>
-            <SidebarGroupLabel>Loading...</SidebarGroupLabel>
             <SidebarMenu>
               {Array.from({ length: 5 }).map((_, index) => (
                 <SidebarMenuItem key={index} className="py-1">
