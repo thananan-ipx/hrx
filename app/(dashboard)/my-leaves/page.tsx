@@ -106,7 +106,7 @@ export default async function MyLeavesPage(props: {
             <TableCell>{formatDate(leave.start_date)}</TableCell>
             <TableCell>{formatDate(leave.end_date)}</TableCell>
             <TableCell>{leave.total_days} วัน</TableCell>
-            <TableCell className="max-w-[200px] truncate" title={leave.reason || ""}>
+            <TableCell className="max-w-50 truncate" title={leave.reason || ""}>
               {leave.reason || "-"}
             </TableCell>
             <TableCell>
