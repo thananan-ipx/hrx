@@ -20,6 +20,7 @@ import {
 
 export function NavMain({
   items,
+  title,
 }: {
   items: {
     title: string
@@ -31,10 +32,13 @@ export function NavMain({
       url: string
     }[]
   }[]
+  title?: string
 }) {
+  if (items.length === 0) return null;
+
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      {title && <SidebarGroupLabel className="text-xs font-semibold text-primary/70 uppercase tracking-wider">{title}</SidebarGroupLabel>}
       <SidebarMenu>
         {items.map((item) => {
           if (item.items && item.items.length > 0) {

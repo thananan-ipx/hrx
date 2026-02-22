@@ -6,11 +6,12 @@ import {
   SquareTerminal,
   LayoutDashboard,
   type LucideIcon,
-  User,
+  Users,
   ClipboardList,
   CalendarDays,
   CheckSquare,
-  ShieldAlert
+  ShieldAlert,
+  Settings2
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 
@@ -43,6 +44,11 @@ type NavItem = {
   }[]
 }
 
+type NavGroup = {
+  title: string;
+  items: NavItem[];
+}
+
 const data: {
   user: {
     id: string
@@ -50,23 +56,38 @@ const data: {
     email: string
     avatar: string
   }
-  navMain: NavItem[]
+  navGroups: NavGroup[]
 } = {
   user: {
     id: "user-1",
-    name: "shadcn",
-    email: "m@example.com",
+    name: "User",
+    email: "user@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  navMain: [
-    { title: "แดชบอร์ด", url: "/dashboard", icon: LayoutDashboard, isActive: true },
-    { title: "จัดการแผนก", url: "/departments", icon: SquareTerminal, isActive: true, permission: "manage:settings" },
-    { title: "จัดการระดับตำแหน่ง", url: "/job-levels", icon: SquareTerminal, isActive: true, permission: "manage:settings" },
-    { title: "จัดการพนักงาน", url: "/employees", icon: User, isActive: true, permission: "view:employees" },
-    { title: "จัดการประเภทวันลา", url: "/leave-types", icon: ClipboardList, isActive: true, permission: "manage:settings" },
-    { title: "การลาของฉัน", url: "/my-leaves", icon: CalendarDays, isActive: true },
-    { title: "อนุมัติการลา", url: "/leave-approvals", icon: CheckSquare, isActive: true, permission: "approve:leave" },
-    { title: "จัดการสิทธิ์ (Roles)", url: "/roles", icon: ShieldAlert, isActive: true, permission: "manage:settings" },
+  navGroups: [
+    {
+      title: "ภาพรวมระบบ",
+      items: [
+        { title: "แดชบอร์ด", url: "/dashboard", icon: LayoutDashboard, isActive: true },
+      ]
+    },
+    {
+      title: "พนักงานและการลา",
+      items: [
+        { title: "การลาของฉัน", url: "/my-leaves", icon: CalendarDays, isActive: true },
+        { title: "อนุมัติการลา", url: "/leave-approvals", icon: CheckSquare, isActive: true, permission: "approve:leave" },
+        { title: "จัดการพนักงาน", url: "/employees", icon: Users, isActive: true, permission: "view:employees" },
+      ]
+    },
+    {
+      title: "ตั้งค่าระบบ",
+      items: [
+        { title: "จัดการแผนก", url: "/departments", icon: SquareTerminal, isActive: true, permission: "manage:settings" },
+        { title: "จัดการระดับตำแหน่ง", url: "/job-levels", icon: Settings2, isActive: true, permission: "manage:settings" },
+        { title: "จัดการประเภทวันลา", url: "/leave-types", icon: ClipboardList, isActive: true, permission: "manage:settings" },
+        { title: "จัดการสิทธิ์ (Roles)", url: "/roles", icon: ShieldAlert, isActive: true, permission: "manage:settings" },
+      ]
+    }
   ],
 }
 
@@ -74,52 +95,60 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
   const { hasPermission, isLoading } = usePermissions()
 
-  const allowedNavMain = data.navMain.filter((item) => {
-    if (!item.permission) return true;
-    return hasPermission(item.permission);
-  }).map((item) => {
-    const isChildActive = item.items?.some((subItem) => 
-      subItem.url !== "#" && pathname.startsWith(subItem.url)
-    )
-    return { ...item, isActive: isChildActive || item.isActive }
-  })
+  const allowedGroups = data.navGroups.map(group => {
+    const filteredItems = group.items.filter((item) => {
+      if (!item.permission) return true;
+      return hasPermission(item.permission);
+    }).map((item) => {
+      const isChildActive = item.items?.some((subItem) => 
+        subItem.url !== "#" && pathname.startsWith(subItem.url)
+      )
+      return { ...item, isActive: isChildActive || pathname.startsWith(item.url) }
+    });
+
+    return { ...group, items: filteredItems };
+  }).filter(group => group.items.length > 0);
 
   return (
     <Sidebar variant="inset" {...props}>
-      <SidebarHeader>
+      <SidebarHeader className="py-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
+            <SidebarMenuButton size="lg" asChild className="hover:bg-transparent">
               <Link href="/dashboard">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Command className="size-4" />
+                <div className="bg-linear-to-br from-blue-600 to-indigo-600 text-white flex aspect-square size-9 items-center justify-center rounded-xl shadow-sm">
+                  <Command className="size-5" />
                 </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">HRX</span>
-                  <span className="truncate text-xs">I Progress X</span>
+                <div className="grid flex-1 text-left text-sm leading-tight ml-1">
+                  <span className="truncate font-bold text-base tracking-tight">HRX</span>
+                  <span className="truncate text-xs text-muted-foreground font-medium">I Progress X</span>
                 </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      
+      <SidebarContent className="px-2">
         {isLoading ? (
           <SidebarGroup>
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+            <SidebarGroupLabel>Loading...</SidebarGroupLabel>
             <SidebarMenu>
               {Array.from({ length: 5 }).map((_, index) => (
-                <SidebarMenuItem key={index}>
+                <SidebarMenuItem key={index} className="py-1">
                   <SidebarMenuSkeleton showIcon />
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroup>
         ) : (
-          <NavMain items={allowedNavMain} />
+          allowedGroups.map((group, index) => (
+            <NavMain key={index} title={group.title} items={group.items} />
+          ))
         )}
       </SidebarContent>
-      <SidebarFooter>
+      
+      <SidebarFooter className="px-2 py-4">
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>

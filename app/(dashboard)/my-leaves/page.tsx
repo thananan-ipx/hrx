@@ -52,7 +52,7 @@ export default async function MyLeavesPage(props: {
           <p className="text-muted-foreground">ประวัติการลาและยื่นขอลาหยุด</p>
         </div>
         
-        <LeaveRequestDialog leaveTypes={leaveTypes} />
+        <LeaveRequestDialog leaveTypes={leaveTypes} quotas={quotas} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">

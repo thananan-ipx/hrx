@@ -1,6 +1,20 @@
 "use client"
 
 import { usePathname } from "next/navigation"
+import Link from "next/link"
+import {
+  LayoutDashboard,
+  Users,
+  ClipboardList,
+  CalendarDays,
+  CheckSquare,
+  ShieldAlert,
+  Settings2,
+  SquareTerminal,
+  HomeIcon,
+  FolderIcon,
+} from "lucide-react"
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,15 +24,15 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
-const routeMapping: Record<string, { label: string; parent?: string }> = {
-  "/": { label: "Dashboard" },
-  "/dashboard": { label: "แดชบอร์ด" },
-  "/job-levels": { label: "จัดการระดับตำแหน่ง", parent: "ตั้งค่า" },
-  "/departments": { label: "จัดการแผนก", parent: "ตั้งค่า" },
-  "/employees": { label: "จัดการพนักงาน", parent: "บุคลากร" },
-  "/leave-types": { label: "จัดการประเภทวันลา", parent: "ตั้งค่า" },
-  "/my-leaves": { label: "การลาของฉัน", parent: "บริการพนักงาน" },
-  "/leave-approvals": { label: "อนุมัติการลา", parent: "บริการหัวหน้างาน" },
+const routeMapping: Record<string, { label: string; parent?: string; icon?: React.ElementType }> = {
+  "/dashboard": { label: "แดชบอร์ด", icon: LayoutDashboard },
+  "/my-leaves": { label: "การลาของฉัน", parent: "พนักงานและการลา", icon: CalendarDays },
+  "/leave-approvals": { label: "อนุมัติการลา", parent: "พนักงานและการลา", icon: CheckSquare },
+  "/employees": { label: "จัดการพนักงาน", parent: "พนักงานและการลา", icon: Users },
+  "/departments": { label: "จัดการแผนก", parent: "ตั้งค่าระบบ", icon: SquareTerminal },
+  "/job-levels": { label: "จัดการระดับตำแหน่ง", parent: "ตั้งค่าระบบ", icon: Settings2 },
+  "/leave-types": { label: "จัดการประเภทวันลา", parent: "ตั้งค่าระบบ", icon: ClipboardList },
+  "/roles": { label: "จัดการสิทธิ์ (Roles)", parent: "ตั้งค่าระบบ", icon: ShieldAlert },
 }
 
 export function AppBreadcrumb() {
@@ -38,29 +52,50 @@ export function AppBreadcrumb() {
         <Breadcrumb>
             <BreadcrumbList>
                 <BreadcrumbItem>
-                    <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                    <BreadcrumbLink asChild>
+                        <Link href="/dashboard" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                            <HomeIcon className="h-4 w-4" />
+                            <span>หน้าหลัก</span>
+                        </Link>
+                    </BreadcrumbLink>
                 </BreadcrumbItem>
             </BreadcrumbList>
         </Breadcrumb>
     )
   }
 
+  const Icon = currentPathConfig.icon
+
   return (
     <Breadcrumb>
       <BreadcrumbList>
+        <BreadcrumbItem className="hidden md:block">
+          <BreadcrumbLink asChild>
+            <Link href="/dashboard" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors">
+              <HomeIcon className="h-4 w-4" />
+            </Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        
         {currentPathConfig.parent && (
           <>
-            <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="#" className="cursor-default">
-                {currentPathConfig.parent}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
+            <BreadcrumbItem className="hidden md:block">
+              <span className="flex items-center gap-1.5 text-muted-foreground cursor-default">
+                <FolderIcon className="h-3.5 w-3.5" />
+                {currentPathConfig.parent}
+              </span>
+            </BreadcrumbItem>
           </>
         )}
         
+        <BreadcrumbSeparator className="hidden md:block" />
+
         <BreadcrumbItem>
-          <BreadcrumbPage>{currentPathConfig.label}</BreadcrumbPage>
+          <BreadcrumbPage className="flex items-center gap-1.5 font-semibold text-foreground">
+            {Icon && <Icon className="h-4 w-4 text-primary" />}
+            {currentPathConfig.label}
+          </BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>
     </Breadcrumb>
