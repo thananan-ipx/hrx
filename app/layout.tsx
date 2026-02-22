@@ -1,9 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Inter, Noto_Sans_Thai, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner"
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const notoSansThai = Noto_Sans_Thai({
+  subsets: ['thai', 'latin'],
+  variable: '--font-noto-sans-thai',
+  display: 'swap',
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,9 +37,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${notoSansThai.variable}`}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`font-sans ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
         <Toaster />
